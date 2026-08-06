@@ -5022,7 +5022,7 @@ function renderSeguimiento(){
         'Reporte entregado ≤ 15 días hábiles tras la finalización<br>Evalúa Auditor','reporte') +
       tarjetaInd('✅','Aprobación del Reporte','#7c3aed', aprobEnTiempo,   conAprob,     noOkAprob, sinAprob,
         'Reporte aprobado ≤ 15 días hábiles tras su entrega<br>Evalúa Auditado -Auditoria','aprobacion') +
-      tarjetaInd('🖊️','CAPA Firmado','#b45309', capaFirmadoOk, conCapaFirmado, noOkCapa, sinCapaFirmado,
+      tarjetaInd('🖊️','Fto. CAPA Firmado','#b45309', capaFirmadoOk, conCapaFirmado, noOkCapa, sinCapaFirmado,
         'CAPA firmado ≤ 20 días hábiles tras la aprobación del reporte<br>Evalúa Auditado -Auditoria','capa');
   }
 
@@ -5172,7 +5172,7 @@ function verIncumplidos(tipo) {
       }
     },
     capa: {
-      titulo: '🖊️ CAPA Firmado — Hallazgos que no cumplen (> 20 días hábiles desde la aprobación del reporte)',
+      titulo: '🖊️ Fto. CAPA Firmado — Hallazgos que no cumplen (> 20 días hábiles desde la aprobación del reporte)',
       color:  '#b45309',
       incump: state.hallazgos.filter(h => {
         if (h.año !== state.activeYear) return false;
@@ -11410,6 +11410,10 @@ function doLogin() {
   // Mostrar app
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('mainApp').style.display = 'grid';
+
+  // Actualizar año mostrado en la barra superior con el año activo del programa de auditoría
+  const yearPillEl = document.getElementById('yearPill');
+  if (yearPillEl) yearPillEl.textContent = 'AÑO ' + state.activeYear;
 
   // Actualizar topbar
   document.getElementById('topbarAvatar').textContent = avatarInitials(usuario.nombre);
