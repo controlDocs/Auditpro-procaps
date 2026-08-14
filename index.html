@@ -2411,12 +2411,25 @@ html,body{height:100%;margin:0;padding:0;overflow:hidden;background:#f4fcf9}
     <button class="btn btn-primary" onclick="openModal('modalEmail')">📧 Crear Notificación</button>
   </div>
 
-  <!-- Auditorías programadas por notificar -->
-  <div class="card mb24">
+  <!-- Selector de tipo de notificación — cada categoría es independiente y se
+       distingue por color/ícono. Solo "Auditorías Programadas" depende de
+       una fecha (30 días antes); las demás aparecen mientras la condición
+       exista, sin importar la fecha. -->
+  <div class="tabs" style="margin-bottom:16px">
+    <div class="tab active" onclick="setTab(this);cambiarSubTabNotif('programadas')">📅 Auditorías Programadas</div>
+    <div class="tab" onclick="setTab(this);cambiarSubTabNotif('reporte')">📄 Reporte sin Entregar</div>
+    <div class="tab" onclick="setTab(this);cambiarSubTabNotif('guia')">📋 Guía sin Entregar</div>
+    <div class="tab" onclick="setTab(this);cambiarSubTabNotif('revision')">🔍 Revisión del Reporte Pendiente</div>
+    <div class="tab" onclick="setTab(this);cambiarSubTabNotif('planes')">🎯 Planes de Acción sin Definir</div>
+  </div>
+
+  <!-- 1) Auditorías programadas por notificar (ÚNICA con dependencia de fecha: 30 días antes) -->
+  <div class="notif-subtab" id="notifSub-programadas">
+  <div class="card mb24" style="border-left:4px solid var(--sg-teal)">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
       <div>
         <div class="card-title" style="margin-bottom:2px">📅 Auditorías Programadas por Notificar</div>
-        <div style="font-size:11px;color:var(--snow3)">Aparecen aquí 30 días antes de su fecha programada y hasta que se les asigne fecha de ejecución.</div>
+        <div style="font-size:11px;color:var(--snow3)">⏱️ Única categoría con dependencia de tiempo — aparece 30 días antes de la fecha programada y hasta que se le asigne fecha de ejecución.</div>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <div style="text-align:center;padding:6px 14px;background:var(--panel);border-radius:8px">
@@ -2441,6 +2454,95 @@ html,body{height:100%;margin:0;padding:0;overflow:hidden;background:#f4fcf9}
         <tbody id="notifProgramadasBody"></tbody>
       </table>
     </div>
+  </div>
+  </div>
+
+  <!-- 2) Reporte sin entregar -->
+  <div class="notif-subtab" id="notifSub-reporte" style="display:none">
+  <div class="card mb24" style="border-left:4px solid #0284c7">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div>
+        <div class="card-title" style="margin-bottom:2px">📄 Auditorías sin Entrega de Reporte</div>
+        <div style="font-size:11px;color:var(--snow3)">Auditorías ya finalizadas (con fecha fin) que aún no tienen el reporte cargado. No depende de plazos — se muestran mientras falte.</div>
+      </div>
+      <div style="text-align:center;padding:6px 14px;background:var(--panel);border-radius:8px">
+        <div style="font-size:17px;font-weight:800;color:#0284c7" id="notifReporteTotal">0</div>
+        <div style="font-size:9px;color:var(--snow3);text-transform:uppercase">Pendientes</div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Código</th><th>Auditoría</th><th>Fecha Fin</th><th>Estado Notificación</th><th>Acciones</th></tr></thead>
+        <tbody id="notifReporteBody"></tbody>
+      </table>
+    </div>
+  </div>
+  </div>
+
+  <!-- 3) Guía sin entregar -->
+  <div class="notif-subtab" id="notifSub-guia" style="display:none">
+  <div class="card mb24" style="border-left:4px solid #7c3aed">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div>
+        <div class="card-title" style="margin-bottom:2px">📋 Auditorías sin Entrega de Guía</div>
+        <div style="font-size:11px;color:var(--snow3)">Auditorías activas (no canceladas) que aún no tienen fecha de entrega de guía registrada. No depende de plazos.</div>
+      </div>
+      <div style="text-align:center;padding:6px 14px;background:var(--panel);border-radius:8px">
+        <div style="font-size:17px;font-weight:800;color:#7c3aed" id="notifGuiaTotal">0</div>
+        <div style="font-size:9px;color:var(--snow3);text-transform:uppercase">Pendientes</div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Código</th><th>Auditoría</th><th>Mes / Fecha Programada</th><th>Estado Notificación</th><th>Acciones</th></tr></thead>
+        <tbody id="notifGuiaBody"></tbody>
+      </table>
+    </div>
+  </div>
+  </div>
+
+  <!-- 4) Revisión del reporte pendiente (aprobación) -->
+  <div class="notif-subtab" id="notifSub-revision" style="display:none">
+  <div class="card mb24" style="border-left:4px solid #b45309">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div>
+        <div class="card-title" style="margin-bottom:2px">🔍 Reportes sin Revisión / Aprobación</div>
+        <div style="font-size:11px;color:var(--snow3)">Auditorías con reporte entregado, pero cuya revisión (aprobación) por el auditado aún no se registra. No depende de plazos.</div>
+      </div>
+      <div style="text-align:center;padding:6px 14px;background:var(--panel);border-radius:8px">
+        <div style="font-size:17px;font-weight:800;color:#b45309" id="notifRevisionTotal">0</div>
+        <div style="font-size:9px;color:var(--snow3);text-transform:uppercase">Pendientes</div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Código</th><th>Auditoría</th><th>Fecha Entrega Reporte</th><th>Estado Notificación</th><th>Acciones</th></tr></thead>
+        <tbody id="notifRevisionBody"></tbody>
+      </table>
+    </div>
+  </div>
+  </div>
+
+  <!-- 5) Planes de acción sin definir -->
+  <div class="notif-subtab" id="notifSub-planes" style="display:none">
+  <div class="card mb24" style="border-left:4px solid var(--rose)">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+      <div>
+        <div class="card-title" style="margin-bottom:2px">🎯 Auditorías con Planes de Acción sin Definir</div>
+        <div style="font-size:11px;color:var(--snow3)">Auditorías con hallazgos registrados que aún tienen alguno sin acción correctiva definida. No depende de plazos.</div>
+      </div>
+      <div style="text-align:center;padding:6px 14px;background:var(--panel);border-radius:8px">
+        <div style="font-size:17px;font-weight:800;color:var(--rose)" id="notifPlanesTotal">0</div>
+        <div style="font-size:9px;color:var(--snow3);text-transform:uppercase">Pendientes</div>
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Código</th><th>Auditoría</th><th>Hallazgos sin plan</th><th>Estado Notificación</th><th>Acciones</th></tr></thead>
+        <tbody id="notifPlanesBody"></tbody>
+      </table>
+    </div>
+  </div>
   </div>
 
   <!-- Quick action cards -->
@@ -2760,6 +2862,8 @@ html,body{height:100%;margin:0;padding:0;overflow:hidden;background:#f4fcf9}
             <option value="">— Selecciona un tipo —</option>
             <option value="ejecucion">📅 Fecha de Ejecución de Auditoría</option>
             <option value="reporte_pendiente">📄 No Entrega del Reporte de Auditoría</option>
+            <option value="guia_pendiente">📋 No Entrega de la Guía de Auditoría</option>
+            <option value="revision_pendiente">🔍 No Realización de la Revisión del Reporte</option>
             <option value="reporte_entregado">✅ Entrega del Reporte de Auditoría</option>
             <option value="planes_definidos">🎯 Planes de Acción Definidos</option>
             <option value="planes_pendientes">⚠️ No Entrega de Planes de Acción</option>
@@ -3636,7 +3740,29 @@ async function navTop(page, btn){
 }
 
 // navFormacionTop: navigate to a formacion sub-page from Home cards
-function navFormacionTop(pageId){
+async function navFormacionTop(pageId){
+  // ── Candado por módulo (solo en modo carpeta) — misma lógica que navTop().
+  //    Sin esto, entrar a Formación nunca fijaba el "módulo activo" y el
+  //    guardado caía siempre al modo de un solo archivo (que no sabe
+  //    escribir en una carpeta), por eso terminaba descargando copias. ──
+  const claveModulo = PAGINA_MODULO[pageId];
+  if (authState._modoCarpeta && authState.currentUser) {
+    if (!claveModulo) {
+      if (_moduloActual) { await liberarCandado(_moduloActual); _moduloActual = null; }
+    } else if (claveModulo !== _moduloActual) {
+      const bloqueo = await verificarCandado(claveModulo);
+      if (bloqueo) {
+        const hora = bloqueo.fecha ? new Date(bloqueo.fecha).toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}) : '';
+        toast(`🔒 "${MODULO_ARCHIVO[claveModulo]}" está siendo editado por ${bloqueo.nombreUsuario||bloqueo.usuario} (desde las ${hora}). Intenta de nuevo en unos minutos.`, '🔒');
+        return; // no navegar — módulo ocupado
+      }
+      if (_moduloActual) await liberarCandado(_moduloActual);
+      await adquirirCandado(claveModulo);
+      _moduloActual = claveModulo;
+    }
+  }
+  actualizarBadgeModulo();
+
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.top-nav-btn').forEach(b=>b.classList.remove('active'));
   // Formación pages are inside the formacion section
@@ -4121,6 +4247,15 @@ function marcarAlerta(auditId, campo) {
 }
 
 function renderAlertas() {
+  // El banner de alertas al abrir la app (Inicio) se eliminó — ahora todo el
+  // seguimiento de pendientes (reporte, guía, revisión, planes de acción y
+  // auditorías programadas) vive de forma organizada en el módulo de
+  // Notificaciones por Correo, en vez de aparecer como una alerta emergente.
+  const container = document.getElementById('alertasBanner');
+  if (container) { container.innerHTML=''; container.style.display='none'; }
+  return;
+}
+function renderAlertas_DESACTIVADA_legacy() {
   const container = document.getElementById('alertasBanner');
   if(!container) return;
   // Las alertas solo se muestran en el módulo de Inicio. En el resto de
@@ -7098,6 +7233,40 @@ Por favor, proceda con la elaboración y entrega del informe de auditoría a la 
 
 Cordialmente,`
   }),
+  guia_pendiente: (a) => ({
+    asunto: `[URGENTE] Pendiente entrega de guía — Auditoría ${a.codigo}`,
+    cuerpo: `Estimado(a) auditor(a) responsable,
+
+Le recordamos que la guía de la siguiente auditoría se encuentra PENDIENTE de entrega al auditado:
+
+📋 DATOS:
+• Código: ${a.codigo}
+• Alcance: ${truncate(a.dp, 100)}
+• Mes / Fecha programada: ${a.fechaProgramada || a.mes || 'No registrada'}
+• Estado: ${a.estado}
+• Guía: ❌ NO ENTREGADA
+
+Por favor, proceda con la elaboración y entrega de la guía de auditoría a la brevedad posible.
+
+Cordialmente,`
+  }),
+  revision_pendiente: (a) => ({
+    asunto: `[URGENTE] Pendiente revisión del reporte — Auditoría ${a.codigo}`,
+    cuerpo: `Estimado(a) auditado(a),
+
+Le recordamos que el reporte de la siguiente auditoría fue entregado y se encuentra PENDIENTE de su revisión y aprobación:
+
+📋 DATOS:
+• Código: ${a.codigo}
+• Alcance: ${truncate(a.dp, 100)}
+• Fecha de entrega del reporte: ${a.fechaReporte || 'No registrada'}
+• Estado: ${a.estado}
+• Revisión / Aprobación: ❌ PENDIENTE
+
+Por favor, proceda con la revisión y aprobación del reporte a la brevedad posible, de acuerdo con los tiempos establecidos en el procedimiento DP-0076.
+
+Cordialmente,`
+  }),
   reporte_entregado: (a) => ({
     asunto: `Reporte entregado — Auditoría ${a.codigo}`,
     cuerpo: `Estimado(a) equipo,
@@ -7238,6 +7407,18 @@ function renderNotificaciones(){
   populateEmailAuditSelect();
   renderNotifHistorial();
   renderNotifProgramadas();
+  renderNotifReportePendiente();
+  renderNotifGuiaPendiente();
+  renderNotifRevisionPendiente();
+  renderNotifPlanesPendientes();
+}
+
+// Cambia entre las sub-pestañas de tipo de notificación (cada una es
+// independiente y se ve claramente diferenciada por color/ícono).
+function cambiarSubTabNotif(clave){
+  document.querySelectorAll('.notif-subtab').forEach(el=>el.style.display='none');
+  const el = document.getElementById('notifSub-'+clave);
+  if (el) el.style.display='block';
 }
 
 // ── Auditorías programadas por notificar: aparecen 30 días antes de su
@@ -7320,6 +7501,119 @@ function notificarAuditoriaProgramada(auditId){
   if (selTipo) selTipo.value = 'ejecucion';
   onEmailAuditChange();
   openModal('modalEmail');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  NOTIFICACIONES SIN DEPENDENCIA DE FECHA — Reporte, Guía,
+//  Revisión/Aprobación y Planes de Acción. A diferencia de
+//  "Auditorías Programadas", estas aparecen mientras la condición
+//  exista, sin importar cuántos días falten/pasaron.
+// ══════════════════════════════════════════════════════════════
+
+// Marca en el arreglo indicado (campo de la auditoría) una notificación más,
+// y abre el compositor de correo con el tipo de plantilla correspondiente.
+function notificarGenerico(auditId, campoArray, tipoEmail, rerenderFn){
+  const audits = getAudits();
+  const idx = audits.findIndex(a=>a.id===auditId);
+  if (idx < 0) return;
+  if (!audits[idx][campoArray]) audits[idx][campoArray] = [];
+  audits[idx][campoArray].push(new Date().toISOString());
+  state.audits[state.activeYear] = audits;
+  saveState();
+  toast('Auditoría marcada como notificada','📧');
+  if (typeof rerenderFn === 'function') rerenderFn();
+
+  populateEmailAuditSelect();
+  const selAudit = document.getElementById('emailCodigoAudit');
+  const selTipo = document.getElementById('emailTipo');
+  if (selAudit) selAudit.value = auditId;
+  if (selTipo) selTipo.value = tipoEmail;
+  onEmailAuditChange();
+  openModal('modalEmail');
+}
+
+function estadoNotifTxt(arr){
+  const n = arr||[];
+  return n.length
+    ? `<span style="color:var(--sg-green);font-weight:700;font-size:12px">✅ Notificada (${n.length}x)</span><div style="font-size:10px;color:var(--snow3)">Última: ${new Date(n[n.length-1]).toLocaleString('es-CO')}</div>`
+    : `<span style="color:var(--amber);font-weight:700;font-size:12px">⏳ Pendiente de notificar</span>`;
+}
+
+// ── 2) Reporte sin entregar: auditoría finalizada (fechaFin) sin fechaReporte ──
+function renderNotifReportePendiente(){
+  const el = document.getElementById('notifReporteTotal');
+  if (!el) return;
+  const audits = getAudits().filter(a=>a.fechaFin && !a.fechaReporte && a.estado!=='Cancelada');
+  el.textContent = audits.length;
+  const body = document.getElementById('notifReporteBody');
+  if (!body) return;
+  if (!audits.length){ body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--snow3)">🎉 No hay reportes pendientes de entrega.</td></tr>`; return; }
+  body.innerHTML = audits.map(a=>`<tr>
+    <td class="td-code" style="font-size:11px">${a.codigo}</td>
+    <td style="max-width:220px;font-size:12px">${truncate(a.dp,55)}</td>
+    <td style="font-size:12px">${a.fechaFin||'—'}</td>
+    <td>${estadoNotifTxt(a.notifReporte)}</td>
+    <td><button class="btn btn-primary btn-sm" onclick="notificarGenerico('${a.id}','notifReporte','reporte_pendiente',renderNotifReportePendiente)">📧 Notificar</button></td>
+  </tr>`).join('');
+}
+
+// ── 3) Guía sin entregar: auditoría activa sin fechaGuia ──
+function renderNotifGuiaPendiente(){
+  const el = document.getElementById('notifGuiaTotal');
+  if (!el) return;
+  const audits = getAudits().filter(a=>!a.fechaGuia && a.estado!=='Cancelada' && a.estado!=='Ejecutada');
+  el.textContent = audits.length;
+  const body = document.getElementById('notifGuiaBody');
+  if (!body) return;
+  if (!audits.length){ body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--snow3)">🎉 No hay guías pendientes de entrega.</td></tr>`; return; }
+  body.innerHTML = audits.map(a=>`<tr>
+    <td class="td-code" style="font-size:11px">${a.codigo}</td>
+    <td style="max-width:220px;font-size:12px">${truncate(a.dp,55)}</td>
+    <td style="font-size:12px">${a.fechaProgramada || a.mes || '—'}</td>
+    <td>${estadoNotifTxt(a.notifGuia)}</td>
+    <td><button class="btn btn-primary btn-sm" onclick="notificarGenerico('${a.id}','notifGuia','guia_pendiente',renderNotifGuiaPendiente)">📧 Notificar</button></td>
+  </tr>`).join('');
+}
+
+// ── 4) Revisión / aprobación del reporte pendiente: reporte entregado sin fechaAprobReporte ──
+function renderNotifRevisionPendiente(){
+  const el = document.getElementById('notifRevisionTotal');
+  if (!el) return;
+  const audits = getAudits().filter(a=>a.fechaReporte && !a.fechaAprobReporte && a.estado!=='Cancelada');
+  el.textContent = audits.length;
+  const body = document.getElementById('notifRevisionBody');
+  if (!body) return;
+  if (!audits.length){ body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--snow3)">🎉 No hay revisiones de reporte pendientes.</td></tr>`; return; }
+  body.innerHTML = audits.map(a=>`<tr>
+    <td class="td-code" style="font-size:11px">${a.codigo}</td>
+    <td style="max-width:220px;font-size:12px">${truncate(a.dp,55)}</td>
+    <td style="font-size:12px">${a.fechaReporte||'—'}</td>
+    <td>${estadoNotifTxt(a.notifRevision)}</td>
+    <td><button class="btn btn-primary btn-sm" onclick="notificarGenerico('${a.id}','notifRevision','revision_pendiente',renderNotifRevisionPendiente)">📧 Notificar</button></td>
+  </tr>`).join('');
+}
+
+// ── 5) Planes de acción sin definir: hallazgos de la auditoría sin acción correctiva ──
+function renderNotifPlanesPendientes(){
+  const el = document.getElementById('notifPlanesTotal');
+  if (!el) return;
+  const audits = getAudits();
+  const filas = audits.map(a=>{
+    const hs = state.hallazgos.filter(h=>h.auditoria===a.id);
+    const sinPlan = hs.filter(h=>!h.accion||!h.accion.trim());
+    return { a, total: hs.length, sinPlan };
+  }).filter(f=>f.sinPlan.length>0);
+  el.textContent = filas.length;
+  const body = document.getElementById('notifPlanesBody');
+  if (!body) return;
+  if (!filas.length){ body.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--snow3)">🎉 No hay planes de acción pendientes de definir.</td></tr>`; return; }
+  body.innerHTML = filas.map(({a,total,sinPlan})=>`<tr>
+    <td class="td-code" style="font-size:11px">${a.codigo}</td>
+    <td style="max-width:220px;font-size:12px">${truncate(a.dp,55)}</td>
+    <td style="font-size:12px;font-weight:700;color:var(--rose)">${sinPlan.length} de ${total}</td>
+    <td>${estadoNotifTxt(a.notifPlanes)}</td>
+    <td><button class="btn btn-primary btn-sm" onclick="notificarGenerico('${a.id}','notifPlanes','planes_pendientes',renderNotifPlanesPendientes)">📧 Notificar</button></td>
+  </tr>`).join('');
 }
 
 
@@ -11190,6 +11484,7 @@ ${xml}
             const ds=new DecompressionStream('deflate-raw');
             const writer=ds.writable.getWriter();
             const writeDone = writer.write(data).then(()=>writer.close());
+            writeDone.catch(()=>{}); // adjuntar de inmediato: evita 'Uncaught (in promise)' si close()/write() fallan de forma asíncrona
             const chunks=[];const reader=ds.readable.getReader();
             while(true){const{done,value}=await reader.read();if(done)break;chunks.push(value);}
             await writeDone.catch(()=>{}); // evita rechazo de promesa sin capturar
@@ -11478,7 +11773,11 @@ function construirHojaAuditorias(wb){
         'Reporte Fecha Vinculo': rep.url ? (rep.date||'') : '',
         'Reporte Observaciones': rep.url ? (rep.observaciones||'') : '',
         'Notificaciones Enviadas': (a.notificaciones||[]).length,
-        'Última Notificación': (a.notificaciones&&a.notificaciones.length) ? a.notificaciones[a.notificaciones.length-1] : ''
+        'Última Notificación': (a.notificaciones&&a.notificaciones.length) ? a.notificaciones[a.notificaciones.length-1] : '',
+        'Notif. Reporte Pendiente': (a.notifReporte||[]).length,
+        'Notif. Guía Pendiente': (a.notifGuia||[]).length,
+        'Notif. Revisión Pendiente': (a.notifRevision||[]).length,
+        'Notif. Planes Pendientes': (a.notifPlanes||[]).length
       });
     });
   });
@@ -12083,6 +12382,7 @@ async function decompressMap(map) {
         const ds = new DecompressionStream('deflate-raw');
         const writer = ds.writable.getWriter();
         const writeDone = writer.write(val._data).then(()=>writer.close());
+        writeDone.catch(()=>{}); // adjuntar de inmediato: evita 'Uncaught (in promise)' si close()/write() fallan de forma asíncrona
         const chunks = []; const reader = ds.readable.getReader();
         while(true){const{done,value}=await reader.read();if(done)break;chunks.push(value);}
         await writeDone.catch(()=>{}); // evita rechazo de promesa sin capturar
@@ -13120,7 +13420,11 @@ function procesarWbCompleto(wb) {
             const arr = new Array(Math.max(n-1,0)).fill(ultima || new Date().toISOString());
             arr.push(ultima || new Date().toISOString());
             return arr;
-          })()
+          })(),
+          notifReporte: new Array(parseInt(r['Notif. Reporte Pendiente'])||0).fill(new Date().toISOString()),
+          notifGuia: new Array(parseInt(r['Notif. Guía Pendiente'])||0).fill(new Date().toISOString()),
+          notifRevision: new Array(parseInt(r['Notif. Revisión Pendiente'])||0).fill(new Date().toISOString()),
+          notifPlanes: new Array(parseInt(r['Notif. Planes Pendientes'])||0).fill(new Date().toISOString())
         });
         // Reconstruir el reporte vinculado (solo enlaces persisten en el Excel;
         // los archivos locales de sesiones anteriores no se pueden recuperar).
