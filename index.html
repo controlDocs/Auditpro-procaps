@@ -4147,7 +4147,7 @@ function calcularAlertas(audits) {
         ? new Date(mesProg)          // si es fecha exacta tipo 2025-06
         : mesToDate(mesProg, a.año); // si es nombre de mes tipo JUNIO
       if (fechaMes) {
-        const diffDias = Math.floor((fechaMes - hoy) / 86400000);
+        const diffDias = diasHabilesEntre(hoy, fechaMes);
         const limite = al.ejecucion.dias || 30;
         if (diffDias >= 0 && diffDias <= limite) {
           alertas.push({
@@ -4172,7 +4172,7 @@ function calcularAlertas(audits) {
     if (al.reporte.activa && !a.notifReporteEnviada && a.estado === 'Ejecutada' && !a.fechaReporte && a.fechaEjec) {
       const fechaEjec = new Date(a.fechaEjec);
       fechaEjec.setHours(0,0,0,0);
-      const diasDesdeEjec = Math.floor((hoy - fechaEjec) / 86400000);
+      const diasDesdeEjec = diasHabilesEntre(fechaEjec, hoy);
       const diasLimite = diasReporteLimit || 15; // días límite para entregar reporte
       const diasParaVencer = diasLimite - diasDesdeEjec;
       const ventana = al.reporte.dias || 30;
@@ -4207,7 +4207,7 @@ function calcularAlertas(audits) {
         ? new Date(mesProg)
         : mesToDate(mesProg, a.año);
       if (fechaMes) {
-        const diffDias = Math.floor((fechaMes - hoy) / 86400000);
+        const diffDias = diasHabilesEntre(hoy, fechaMes);
         const limite = al.guia.dias || 15;
         if (diffDias <= limite) { // incluye vencidas (diffDias negativo = ya debería estar enviada)
           const vencida = diffDias < 0;
@@ -4858,7 +4858,7 @@ function renderDashComparativo(){
       const conRep = ejec.filter(a=>a.fechaReporte).length;
       const aTiempo = ejec.filter(a=>{
         if(!a.fechaEjec||!a.fechaReporte) return false;
-        return (new Date(a.fechaReporte)-new Date(a.fechaEjec))/86400000<=diasLim;
+        return diasHabilesEntre(a.fechaEjec, a.fechaReporte) <= diasLim;
       }).length;
       const sinRep = ejec.length - conRep;
       const pct = ejec.length>0?Math.round(conRep/ejec.length*100):0;
@@ -6325,8 +6325,7 @@ function renderReportes(){
   const conArchivo=audits.filter(a=>a.reporteArchivo).length;
   const atraso=audits.filter(a=>{
     if(!a.fechaEjec||!a.fechaReporte) return false;
-    const d1=new Date(a.fechaEjec), d2=new Date(a.fechaReporte);
-    return (d2-d1)/(86400000)>diasLim;
+    return diasHabilesEntre(a.fechaEjec, a.fechaReporte)>diasLim;
   }).length;
 
   document.getElementById('reportKpis').innerHTML=`
@@ -6339,12 +6338,10 @@ function renderReportes(){
   document.getElementById('reportesBody').innerHTML=audits.map(a=>{
     let limitDate='', diffDays='', diffColor='var(--snow3)', estado='';
     if(a.fechaEjec){
-      const d1=new Date(a.fechaEjec);
-      const lim=new Date(d1); lim.setDate(lim.getDate()+diasLim);
-      limitDate=lim.toISOString().slice(0,10);
+      limitDate = sumarDiasHabiles(a.fechaEjec, diasLim) || '';
+      const lim = limitDate ? new Date(limitDate) : null;
       if(a.fechaReporte){
-        const d2=new Date(a.fechaReporte);
-        const diff=Math.round((d2-d1)/86400000);
+        const diff=diasHabilesEntre(a.fechaEjec, a.fechaReporte);
         diffDays=diff+'d';
         if(diff>diasLim){ diffColor='var(--rose)'; estado='<span class="badge b-rose">Tardío</span>'; }
         else { diffColor='var(--sg-green)'; estado='<span class="badge b-teal">A tiempo</span>'; }
@@ -7447,7 +7444,7 @@ function renderNotifProgramadas(){
     const fechaRef = (mesProg && /^\d{4}-\d{2}/.test(mesProg)) ? new Date(mesProg) : mesToDate(mesProg, a.año);
     if (!fechaRef || isNaN(fechaRef)) return;
     fechaRef.setHours(0,0,0,0);
-    const diffDias = Math.floor((fechaRef - hoy) / 86400000);
+    const diffDias = diasHabilesEntre(hoy, fechaRef);
     if (diffDias > 30) return;             // aún falta más de un mes
     filas.push({ a, fechaRef, diffDias });
   });
@@ -8562,7 +8559,7 @@ function estadoBadge(e){
 function nivelColor(n){const m={1:'#ef4444',2:'#f97316',3:'#eab308',4:'#22c55e',5:'#1a8f7a'};return m[n]||'#ccc';}
 function avatarBg(i){const c=['#1a8f7a','#167765','#0d8066','#14a782','#7c3aed','#d97706'];return c[i%c.length];}
 function initials(n){return n.split(' ').slice(0,2).map(s=>s[0]).join('').toUpperCase();}
-function daysDiff(d){if(!d)return null;const diff=(new Date(d)-new Date())/86400000;return Math.round(diff);}
+function daysDiff(d){if(!d)return null;return diasHabilesEntre(new Date(), d);}
 function progColor(v){if(v>=80)return 'var(--g)';if(v>=50)return 'var(--amber)';return 'var(--rose)';}
 
 // ══════════════════════════════════════════════
