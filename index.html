@@ -2463,7 +2463,7 @@ html,body{height:100%;margin:0;padding:0;overflow:hidden;background:#f4fcf9}
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
       <div>
         <div class="card-title" style="margin-bottom:2px">📄 Auditorías sin Entrega de Reporte</div>
-        <div style="font-size:11px;color:var(--snow3)">Auditorías ya finalizadas (con fecha fin) que aún no tienen el reporte cargado. Plazo: 15 días hábiles después de ejecutada la auditoría.</div>
+        <div style="font-size:11px;color:var(--snow3)">Auditorías ya finalizadas (con fecha fin) que aún no tienen el reporte cargado. Plazo: 15 días hábiles después de finalizada la auditoría.</div>
       </div>
       <div style="text-align:center;padding:6px 14px;background:var(--panel);border-radius:8px">
         <div style="font-size:17px;font-weight:800;color:#0284c7" id="notifReporteTotal">0</div>
@@ -4857,8 +4857,8 @@ function renderDashComparativo(){
       const ejec = auds.filter(a=>a.estado==='Ejecutada');
       const conRep = ejec.filter(a=>a.fechaReporte).length;
       const aTiempo = ejec.filter(a=>{
-        if(!a.fechaEjec||!a.fechaReporte) return false;
-        return diasHabilesEntre(a.fechaEjec, a.fechaReporte) <= diasLim;
+        if(!a.fechaFin||!a.fechaReporte) return false;
+        return diasHabilesEntre(a.fechaFin, a.fechaReporte) <= diasLim;
       }).length;
       const sinRep = ejec.length - conRep;
       const pct = ejec.length>0?Math.round(conRep/ejec.length*100):0;
@@ -6324,8 +6324,8 @@ function renderReportes(){
   const conRep=audits.filter(a=>a.fechaReporte).length;
   const conArchivo=audits.filter(a=>a.reporteArchivo).length;
   const atraso=audits.filter(a=>{
-    if(!a.fechaEjec||!a.fechaReporte) return false;
-    return diasHabilesEntre(a.fechaEjec, a.fechaReporte)>diasLim;
+    if(!a.fechaFin||!a.fechaReporte) return false;
+    return diasHabilesEntre(a.fechaFin, a.fechaReporte)>diasLim;
   }).length;
 
   document.getElementById('reportKpis').innerHTML=`
@@ -6337,11 +6337,11 @@ function renderReportes(){
 
   document.getElementById('reportesBody').innerHTML=audits.map(a=>{
     let limitDate='', diffDays='', diffColor='var(--snow3)', estado='';
-    if(a.fechaEjec){
-      limitDate = sumarDiasHabiles(a.fechaEjec, diasLim) || '';
+    if(a.fechaFin){
+      limitDate = sumarDiasHabiles(a.fechaFin, diasLim) || '';
       const lim = limitDate ? new Date(limitDate) : null;
       if(a.fechaReporte){
-        const diff=diasHabilesEntre(a.fechaEjec, a.fechaReporte);
+        const diff=diasHabilesEntre(a.fechaFin, a.fechaReporte);
         diffDays=diff+'d';
         if(diff>diasLim){ diffColor='var(--rose)'; estado='<span class="badge b-rose">Tardío</span>'; }
         else { diffColor='var(--sg-green)'; estado='<span class="badge b-teal">A tiempo</span>'; }
@@ -6350,7 +6350,7 @@ function renderReportes(){
         if(today>lim){ estado='<span class="badge b-rose">Vencido</span>'; diffColor='var(--rose)'; }
         else { estado='<span class="badge b-amber">Pendiente</span>'; }
       }
-    } else { estado=`<span class="badge b-gray">Sin ejecutar</span>`; }
+    } else { estado=`<span class="badge b-gray">Sin finalizar</span>`; }
 
     // File badge
     let fileBadge = '';
@@ -7229,9 +7229,10 @@ Le recordamos que el reporte de la siguiente auditoría se encuentra PENDIENTE d
 • Código: ${a.codigo}
 • Alcance: ${truncate(a.dp, 100)}
 • Fecha de ejecución: ${a.fechaEjec || 'No registrada'}
+• Fecha fin: ${a.fechaFin || 'No registrada'}
 • Estado: ${a.estado}
 • Reporte: ❌ NO ENTREGADO
-• Plazo (15 días hábiles desde la ejecución): ${plazoTexto(a.fechaEjec, 15)}
+• Plazo (15 días hábiles desde la finalización): ${plazoTexto(a.fechaFin, 15)}
 
 Por favor, proceda con la elaboración y entrega del informe de auditoría a la brevedad posible, de acuerdo con los tiempos establecidos en el procedimiento DP-0076.
 
@@ -7573,7 +7574,7 @@ function plazoTexto(fechaBase, diasPlazo){
 }
 
 // ── 2) Reporte sin entregar: auditoría finalizada (fechaFin) sin fechaReporte ──
-// Plazo: 15 días hábiles después de ejecutada la auditoría (fechaEjec).
+// Plazo: 15 días hábiles después de finalizada la auditoría (fechaFin).
 function renderNotifReportePendiente(){
   const el = document.getElementById('notifReporteTotal');
   if (!el) return;
@@ -7586,7 +7587,7 @@ function renderNotifReportePendiente(){
     <td class="td-code" style="font-size:11px">${a.codigo}</td>
     <td style="max-width:220px;font-size:12px">${truncate(a.dp,55)}</td>
     <td style="font-size:12px">${a.fechaFin||'—'}</td>
-    <td>${plazoLabel(a.fechaEjec, 15)}</td>
+    <td>${plazoLabel(a.fechaFin, 15)}</td>
     <td>${estadoNotifTxt(a.notifReporte)}</td>
     <td><button class="btn btn-primary btn-sm" onclick="notificarGenerico('${a.id}','notifReporte','reporte_pendiente',renderNotifReportePendiente)">📧 Notificar</button></td>
   </tr>`).join('');
@@ -7714,7 +7715,7 @@ function actualizarPlazoDestacado(tipo, a){
   if (!box || !txt) return;
 
   const config = {
-    reporte_pendiente: { base: a.fechaEjec, dias: 15, etiqueta: 'Plazo de entrega del reporte' },
+    reporte_pendiente: { base: a.fechaFin, dias: 15, etiqueta: 'Plazo de entrega del reporte' },
     guia_pendiente:     { base: a.fechaEjec, dias: 15, etiqueta: 'Plazo de entrega de la guía' },
     planes_pendientes:  { base: a.fechaAprobReporte, dias: 20, etiqueta: 'Plazo para definir el plan de acción' }
   }[tipo];
