@@ -2903,17 +2903,18 @@ html,body{height:100%;margin:0;padding:0;overflow:hidden;background:#f4fcf9}
       </div>
 
       <!-- Plazo destacado (solo para los tipos que aplican: reporte, guía y planes de acción) -->
-      <div id="emailPlazoBox" style="display:none;margin:-6px 0 16px;padding:10px 14px;border-radius:8px;border-left:3px solid;font-size:13px">
-        <span id="emailPlazoTexto" style="font-weight:700;text-decoration:underline"></span>
+      <div id="emailPlazoBox" style="display:none;margin:-6px 0 16px;font-size:13px">
+        <span id="emailPlazoTexto" style="font-weight:700"></span>
       </div>
 
       <div style="padding:10px 14px;background:var(--panel);border-radius:8px;font-size:12px;color:var(--snow3);border:1px solid var(--rim2)">
-        💡 <strong style="color:var(--sg-green2)">Nota:</strong> Este sistema genera el borrador del correo con los datos del sistema. Puedes copiarlo a tu cliente de correo (Outlook, Gmail) o usar el botón <strong>Abrir en cliente de correo</strong> para abrirlo directamente.
+        💡 <strong style="color:var(--sg-green2)">Nota:</strong> Al hacer clic en <strong>"Abrir en cliente de correo"</strong>, este se abre con el texto en formato plano (así lo exige el enlace <code>mailto:</code> — ningún sitio web puede cambiar eso) pero la app copia automáticamente la versión con color al portapapeles: solo pega con <strong>Ctrl+V</strong> dentro del correo para reemplazarlo por el mensaje resaltado.
       </div>
     </div>
     <div class="modal-ft">
       <button class="btn btn-ghost" onclick="closeModal('modalEmail')">Cancelar</button>
       <button class="btn btn-ghost" onclick="copyEmailText()">📋 Copiar texto</button>
+      <button class="btn btn-ghost" onclick="copyEmailConFormato()" title="Copia el mensaje con el recuadro de plazo en color — pégalo (Ctrl+V) en un correo nuevo de Outlook/Gmail para que se vea igual que en la vista previa">🎨 Copiar con formato</button>
       <button class="btn btn-ghost" onclick="openMailClient()">↗ Abrir en cliente de correo</button>
       <button class="btn btn-primary" onclick="registrarNotificacion()">💾 Registrar envío</button>
     </div>
@@ -7727,24 +7728,22 @@ function actualizarPlazoDestacado(tipo, a){
   const hoy = new Date().toISOString().slice(0,10);
   const restantes = limite ? diasHabilesEntre(hoy, limite) : null;
 
-  let color, fondo, mensaje;
+  let color, mensaje;
   if (restantes === null) {
-    color = 'var(--snow3)'; fondo = 'var(--panel)';
+    color = 'var(--snow3)';
     mensaje = `${config.etiqueta}: aún no inicia (falta la fecha base).`;
   } else if (restantes < 0) {
-    color = 'var(--rose)'; fondo = 'rgba(220,38,38,.08)';
+    color = 'var(--rose)';
     mensaje = `❌ ${config.etiqueta}: vencido hace ${Math.abs(restantes)} día(s) hábil(es) (límite era ${limite}).`;
   } else if (restantes === 0) {
-    color = 'var(--rose)'; fondo = 'rgba(220,38,38,.08)';
+    color = 'var(--rose)';
     mensaje = `🔴 ${config.etiqueta}: vence hoy (${limite}).`;
   } else {
-    color = '#d97706'; fondo = 'rgba(217,119,6,.08)';
+    color = '#d97706';
     mensaje = `⏳ ${config.etiqueta}: faltan ${restantes} día(s) hábil(es) (límite ${limite}).`;
   }
 
   box.style.display = 'block';
-  box.style.background = fondo;
-  box.style.borderLeftColor = color;
   txt.style.color = color;
   txt.textContent = mensaje;
 }
@@ -7762,6 +7761,57 @@ function copyEmailText(){
   navigator.clipboard.writeText(full).then(()=>toast('Texto copiado al portapapeles','📋'));
 }
 
+// ── Construye el HTML resaltado (color+negrilla en la línea de plazo y en
+//    los estados "NO ENTREGADO/A"/"PENDIENTE") y lo copia al portapapeles
+//    junto con la versión en texto plano. La reutilizan tanto el botón
+//    "Copiar con formato" como "Abrir en cliente de correo" — ya que los
+//    enlaces mailto: NUNCA pueden llevar formato (es una limitación del
+//    protocolo, no de la app), esta es la forma de que el color sí se vea
+//    al pegar (Ctrl+V) dentro del correo. ──
+function copiarCuerpoConFormato(){
+  const asunto = document.getElementById('emailAsunto').value;
+  const cuerpoTxt = document.getElementById('emailCuerpo').value;
+  const plazoBox = document.getElementById('emailPlazoBox');
+  const tienePlazo = plazoBox && plazoBox.style.display !== 'none';
+
+  let cuerpoHtml = escapeHtml(cuerpoTxt).replace(/\n/g,'<br>');
+
+  if (tienePlazo) {
+    const color = document.getElementById('emailPlazoTexto').style.color || '#d97706';
+    const plazoTxt = document.getElementById('emailPlazoTexto').textContent;
+    const regexPlazo = new RegExp('•\\s*Plazo[^<]*(<br>)?', 'i');
+    cuerpoHtml = cuerpoHtml.replace(regexPlazo, `<strong style="color:${color}">• ${escapeHtml(plazoTxt)}</strong><br>`);
+  }
+
+  cuerpoHtml = cuerpoHtml.replace(/(❌\s*(NO ENTREGAD[OA]|PENDIENTE))/g, '<strong style="color:#dc2626">$1</strong>');
+
+  const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#222;line-height:1.6"><p><strong>Asunto:</strong> ${escapeHtml(asunto)}</p><hr>${cuerpoHtml}</div>`;
+  const plano = `Asunto: ${asunto}\n\n${cuerpoTxt}`;
+
+  if (navigator.clipboard && window.ClipboardItem) {
+    const item = new ClipboardItem({
+      'text/html': new Blob([html], {type:'text/html'}),
+      'text/plain': new Blob([plano], {type:'text/plain'})
+    });
+    return navigator.clipboard.write([item]);
+  }
+  return navigator.clipboard.writeText(plano);
+}
+
+function copyEmailConFormato(){
+  copiarCuerpoConFormato().then(()=>{
+    toast('Copiado con formato — pégalo (Ctrl+V) en un correo nuevo de Outlook/Gmail','🎨');
+  }).catch(()=>{
+    const plano = `Asunto: ${document.getElementById('emailAsunto').value}\n\n${document.getElementById('emailCuerpo').value}`;
+    navigator.clipboard.writeText(plano);
+    toast('Tu navegador no admite copiar con formato — se copió en texto plano','⚠️');
+  });
+}
+
+function escapeHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function openMailClient(){
   const para = document.getElementById('emailPara').value;
   const cc = document.getElementById('emailCC').value;
@@ -7770,8 +7820,18 @@ function openMailClient(){
   let mailto = `mailto:${para}?`;
   if(cc) mailto += `cc=${encodeURIComponent(cc)}&`;
   mailto += `subject=${asunto}&body=${cuerpo}`;
+
+  // El enlace mailto: SIEMPRE abre en texto plano — es una regla del propio
+  // protocolo, ningún sitio web puede cambiarlo. Por eso, junto con abrirlo,
+  // copiamos automáticamente la versión con color al portapapeles: solo hay
+  // que pegar (Ctrl+V) dentro del correo que se abre para reemplazar el
+  // texto plano por el mensaje resaltado.
+  copiarCuerpoConFormato().then(()=>{
+    toast('📧 Se abrió tu correo y se copió el mensaje con color — pégalo (Ctrl+V) para reemplazar el texto plano','🎨');
+  }).catch(()=>{
+    toast('Abriendo cliente de correo... (sale en texto plano)','📧');
+  });
   window.open(mailto);
-  toast('Abriendo cliente de correo...','📧');
 }
 
 function registrarNotificacion(){
@@ -11934,11 +11994,10 @@ function construirHojaHallazgos(wb){
   const capasCols = {'Hallazgo (ID)':'','CAPA (ID)':'','Auditoría (ID)':'','Responsable del Proceso':'','Fecha Compromiso':'','Estado Cierre':'','Acción Correctiva':'','Evidencia de Cierre':'','Recurrencia':'','Recurrencia Ref.':'','Acciones Preventivas':'','Fecha Ingreso CAPAS':'','Fecha CAPA Firmado':''};
   const wsCapas = XLSX.utils.json_to_sheet(capasRows.length ? capasRows : [capasCols]);
   estilizarHoja(wsCapas); XLSX.utils.book_append_sheet(wb, wsCapas, 'CAPAS');
-
-  // Planes de Acción: vista derivada (usa los mismos datos de Hallazgos/CAPAS)
-  const planesRows = (state.planes||[]).map(p=>({'ID':p.id||'','Auditoría (ID)':p.auditoria||'','Hallazgo (ID)':p.hallazgo||'','Descripción':p.descripcion||'','Responsable':p.responsable||'','Fecha Compromiso':p.fechaCompromiso||'','Estado':p.estado||'','Avance %':p.avance||0,'Observaciones':p.obs||''}));
-  const ws3 = XLSX.utils.json_to_sheet(planesRows.length ? planesRows : [{'ID':'','Auditoría (ID)':'','Hallazgo (ID)':'','Descripción':'','Responsable':'','Fecha Compromiso':'','Estado':'','Avance %':0,'Observaciones':''}]);
-  estilizarHoja(ws3); XLSX.utils.book_append_sheet(wb, ws3, 'Planes de Acción');
+  // NOTA: ya no se genera una hoja "Planes de Acción" separada — ese módulo
+  // de la app muestra la información directamente desde las hojas
+  // "Hallazgos"/"CAPAS" (columna Acción, Responsable, etc.), así que una
+  // hoja aparte solo quedaba vacía y generaba confusión.
 }
 
 function construirHojaAuditores(wb){
