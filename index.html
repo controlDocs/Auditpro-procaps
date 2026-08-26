@@ -6519,7 +6519,12 @@ function checkExistingRCA(){
     rcaListasWorking.causaRaiz = h && h.causa ? [h.causa] : [''];
     document.getElementById('rcaCorrectiva').checked = false;
     document.getElementById('rcaPreventiva').checked = false;
-    rcaListasWorking.planDescripcion = h && h.accion ? [h.accion] : [''];
+    // Traer el Plan de Acción de TODAS las CAPAS registradas para este
+    // hallazgo (no solo la última) — cada CAPA aporta su propio plan.
+    rcaListasWorking.planDescripcion = (h && h.capasList && h.capasList.length)
+      ? h.capasList.map(c=>c.accion).filter(v=>v&&v.trim())
+      : (h && h.accion ? [h.accion] : []);
+    if (!rcaListasWorking.planDescripcion.length) rcaListasWorking.planDescripcion = [''];
     renderTodasLasListasRca();
     document.getElementById('rcaResponsables').value = h ? (h.responsable||'') : '';
     document.getElementById('rcaFirmaResponsableFecha').value = '';
@@ -6535,7 +6540,15 @@ function checkExistingRCA(){
     document.getElementById('rcaAprobadoPor').value = '';
     document.getElementById('rcaAprobadoCargo').value = '';
     document.getElementById('rcaAprobadoFecha').value = '';
-    if (infoEl) infoEl.style.display = 'none';
+    const nPlanesTraidos = rcaListasWorking.planDescripcion.filter(v=>v&&v.trim()).length;
+    if (infoEl) {
+      if (nPlanesTraidos > 0) {
+        infoEl.style.display = 'block';
+        infoEl.innerHTML = `📥 Se trajeron automáticamente <strong>${nPlanesTraidos}</strong> plan(es) de acción registrados en las CAPAS de este hallazgo (sección V. Plan de Acción). Puedes editarlos o agregar más.`;
+      } else {
+        infoEl.style.display = 'none';
+      }
+    }
   }
 }
 
